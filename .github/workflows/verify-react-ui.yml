@@ -1,0 +1,50 @@
+name: Verify React shared UI integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "client/package.json"
+      - "client/package-lock.json"
+      - "client/src/index.tsx"
+      - ".github/workflows/verify-react-ui.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "16"
+      - name: Install the legacy React client from its committed lockfile
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Inspect published Neetechs UI package integrity
+        run: |
+          node - <<'NODE'
+          const pkg = require('./package-lock.json').packages['node_modules/@neetechs/ui'];
+          if (pkg?.version !== '0.2.0' || !pkg.integrity) throw Error('npm registry metadata lacks @neetechs/ui integrity');
+          console.log('Published @neetechs/ui@0.2.0 integrity:', pkg.integrity);
+          NODE
+      - name: Build the legacy React client
+        run: npm run build
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify committed client lockfile is complete
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const lock = fs.readFileSync('client/package-lock.json', 'utf8');
+          if (!lock.trim()) {
+            throw Error('Legacy React client lockfile was already empty. Regenerate and commit it using a working npm registry.');
+          }
+          const parsed = JSON.parse(lock);
+          if (parsed.packages?.['node_modules/@neetechs/ui']?.version !== '0.2.0') {
+            throw Error('React client lockfile must pin @neetechs/ui@0.2.0.');
+          }
+          NODE
