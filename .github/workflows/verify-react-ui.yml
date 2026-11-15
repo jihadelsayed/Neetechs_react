@@ -27,13 +27,17 @@ jobs:
           # before marking the migration ready.
           npm install --legacy-peer-deps --no-audit --no-fund
           npm run build
-      - name: Require an installable checked-in lockfile before merge
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require reviewed client lockfile before merge
         run: |
           node - <<'NODE'
           const fs = require('fs');
-          const lock = fs.readFileSync('package-lock.json', 'utf8');
+          const lock = fs.readFileSync('client/package-lock.json', 'utf8');
           if (!lock.trim()) {
-            throw Error('Legacy React client lockfile is empty. Regenerate and commit it after successful npm install.');
+            throw Error('Legacy React client lockfile was already empty. Regenerate and commit it using a working npm registry.');
           }
           const parsed = JSON.parse(lock);
           if (parsed.packages?.['node_modules/@neetechs/ui']?.version !== '0.2.0') {
