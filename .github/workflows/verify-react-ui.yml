@@ -1,0 +1,42 @@
+name: Verify React shared UI integration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "client/package.json"
+      - "client/package-lock.json"
+      - "client/src/index.tsx"
+      - ".github/workflows/verify-react-ui.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "16"
+      - name: Install and build the legacy React client
+        run: |
+          # An empty client/package-lock.json predates this PR.
+          # Generate a reviewed lockfile with npm on a networked machine
+          # before marking the migration ready.
+          npm install --legacy-peer-deps --no-audit --no-fund
+          npm run build
+      - name: Require an installable checked-in lockfile before merge
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const lock = fs.readFileSync('package-lock.json', 'utf8');
+          if (!lock.trim()) {
+            throw Error('Legacy React client lockfile is empty. Regenerate and commit it after successful npm install.');
+          }
+          const parsed = JSON.parse(lock);
+          if (parsed.packages?.['node_modules/@neetechs/ui']?.version !== '0.2.0') {
+            throw Error('React client lockfile must pin @neetechs/ui@0.2.0.');
+          }
+          NODE
