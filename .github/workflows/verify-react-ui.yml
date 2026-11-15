@@ -20,20 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "16"
-      - name: Install the legacy React client
-        run: npm install --legacy-peer-deps --no-audit --no-fund
-      - name: Capture npm-generated dependency lock for review
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const body = fs.readFileSync('package-lock.json', 'utf8');
-          console.log('NEETECHS_LOCK_CAPTURE_BEGIN');
-          let part = 0;
-          for (let i = 0; i < body.length; i += 1024) {
-            console.log('NEETECHS_LOCK_CAPTURE_PART', part++, JSON.stringify(body.slice(i, i + 1024)));
-          }
-          console.log('NEETECHS_LOCK_CAPTURE_END', part, body.length);
-          NODE
+      - name: Install the legacy React client from its committed lockfile
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
       - name: Inspect published Neetechs UI package integrity
         run: |
           node - <<'NODE'
@@ -47,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Require reviewed client lockfile before merge
+      - name: Verify committed client lockfile is complete
         run: |
           node - <<'NODE'
           const fs = require('fs');
