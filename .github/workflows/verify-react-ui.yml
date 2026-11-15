@@ -20,13 +20,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "16"
-      - name: Install and build the legacy React client
+      - name: Install the legacy React client
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Inspect published Neetechs UI package integrity
         run: |
-          # An empty client/package-lock.json predates this PR.
-          # Generate a reviewed lockfile with npm on a networked machine
-          # before marking the migration ready.
-          npm install --legacy-peer-deps --no-audit --no-fund
-          npm run build
+          node - <<'NODE'
+          const pkg = require('./package-lock.json').packages['node_modules/@neetechs/ui'];
+          if (pkg?.version !== '0.2.0' || !pkg.integrity) throw Error('npm registry metadata lacks @neetechs/ui integrity');
+          console.log('Published @neetechs/ui@0.2.0 integrity:', pkg.integrity);
+          NODE
+      - name: Build the legacy React client
+        run: npm run build
   lockfile:
     runs-on: ubuntu-latest
     steps:
