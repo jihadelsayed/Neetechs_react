@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 
 import './App.css';
 //import { useAuth } from "./lib/auth";
-import IUser from './types/user.type';
 
 import { Routes, Route, Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
